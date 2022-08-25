@@ -83,6 +83,7 @@ while(total_procesos > 0):
         cinta[n_lote].append(proceso)
         n_proceso = 0
         n_lote += 1
+        lote = []
 
     total_procesos -= 1
 
