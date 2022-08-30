@@ -92,12 +92,11 @@ while(total_procesos > 0):
 
 os.system("cls")
 
+#Verificacion para poder la cantidad correcta de lotes que se trabajaran
 if procesos_totales % 3 == 0:
     pass
 else:
     n_lote += 1
-
-print(cinta)
 
 def make_layout() -> Layout:
     """Define el layout."""
@@ -123,7 +122,7 @@ class Header:
         grid.add_column(justify="right", ratio=1)
         grid.add_column(justify="left", ratio=1)
         grid.add_row(
-            "Lotes restantes: ", str(n_lote-1), style="green",
+            "Lotes restantes: ", str(n_lote-1), style="grey3",
         )
         return Panel(grid, style="white on blue")
 
@@ -131,8 +130,8 @@ def tabla_lote_ejecucion(limite) -> Table:
     """Genera la tabla del lote en ejecucion"""
 
     table = Table(title ="Lote en ejecucion")
-    table.add_column("Nombre de programador", justify="left", style="bold blue")
-    table.add_column("TME", justify="left", style="bold blue")
+    table.add_column("Nombre de programador", justify="left", style="light_slate_blue")
+    table.add_column("TME", justify="left", style="light_slate_blue")
     
     for row in range(limite,3):
         try:
@@ -151,76 +150,117 @@ def tabla_proceso_ejecucion(tiem_trans, tiem_restante) -> Table:
     table.add_column("Informacion", justify="left", style="bold blue")
     
     table.add_row(
-                "Nombre del programador: ",str(cinta[lotes_trabajados][procesos_trabajados][0]),style="black"
+                "Nombre del programador: ",str(cinta[lotes_trabajados][procesos_trabajados][0]),style="grey63"
             )
     table.add_row(
-                "Operacion: ",str(cinta[lotes_trabajados][procesos_trabajados][1]) + str(cinta[lotes_trabajados][procesos_trabajados][3]) + str(cinta[lotes_trabajados][procesos_trabajados][2]), style="purple"
+                "Operacion: ",str(cinta[lotes_trabajados][procesos_trabajados][1]) + str(cinta[lotes_trabajados][procesos_trabajados][3]) + str(cinta[lotes_trabajados][procesos_trabajados][2]), style="medium_purple2"
             )
     table.add_row(
-                "TME: ",str(cinta[lotes_trabajados][procesos_trabajados][4])
+                "TME: ",str(cinta[lotes_trabajados][procesos_trabajados][4]), style="grey63"
             )
     table.add_row(
-                "Numero de programa: ", str(cinta[lotes_trabajados][procesos_trabajados][6])
+                "Numero de programa: ", str(cinta[lotes_trabajados][procesos_trabajados][6]), style="medium_purple2"
             )
     table.add_row(
-                "Tiempo transcurrido: ", str(tiem_trans)
+                "Tiempo transcurrido: ", str(tiem_trans), style="grey63"
             )
     table.add_row(
-                "Tiempo restante: ", str(tiem_restante)
+                "Tiempo restante: ", str(tiem_restante), style="medium_purple2"
             )
 
     return table
 
-def tabla_proceso_finalizado() -> Table:
-    """Genera la tabla del procesos finalizados"""
-    table = Table(title ="Procesos finalizados")
-    table.add_column("Nº de programa", justify="left", style="bold blue")
-    table.add_column("Operacion", justify="left", style="bold blue")
-    table.add_column("Resultado", justify="left", style="bold blue")
-    table.add_column("Nº de lote", justify="left", style="bold blue")
-
+def tabla_proceso_ejecucion_fin() -> Table:
+    """Genera la tabla del proceso en ejecucion"""
+    table = Table(title ="Proceso en ejecucion")
+    table.add_column("Datos", justify="left", style="bold blue")
+    table.add_column("Informacion", justify="left", style="bold blue")
+    table.add_row(
+                "Nombre del programador: ", style="grey63"
+            )
+    table.add_row(
+                "Operacion: ", style="medium_purple2"
+            )
+    table.add_row(
+                "TME: ", style="grey63"
+            )
+    table.add_row(
+                "Numero de programa: ",  style="medium_purple2"
+            )
+    table.add_row(
+                "Tiempo transcurrido: ", style="grey63"
+            )
+    table.add_row(
+                "Tiempo restante: ",  style="medium_purple2"
+            )
     return table
+
+"""Genera la tabla del procesos finalizados"""
+table_finalizados = Table(title ="Procesos finalizados")
+table_finalizados.add_column("Nº de programa", justify="left", style="bold blue")
+table_finalizados.add_column("Operacion", justify="left", style="bold blue")
+table_finalizados.add_column("Resultado", justify="left", style="bold blue")
+table_finalizados.add_column("Nº de lote", justify="left", style="bold blue")
+
+def agregar_proceso_fin(color):
+    no_programa = cinta[lotes_trabajados][procesos_trabajados][6]
+    operacion = str(cinta[lotes_trabajados][procesos_trabajados][1]) + cinta[lotes_trabajados][procesos_trabajados][3] + str(cinta[lotes_trabajados][procesos_trabajados][2])
+    
+    if cinta[lotes_trabajados][procesos_trabajados][3] == "+":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] + cinta[lotes_trabajados][procesos_trabajados][2]
+    elif cinta[lotes_trabajados][procesos_trabajados][3] == "-":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] - cinta[lotes_trabajados][procesos_trabajados][2]
+    elif cinta[lotes_trabajados][procesos_trabajados][3] == "*":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] * cinta[lotes_trabajados][procesos_trabajados][2]
+    elif cinta[lotes_trabajados][procesos_trabajados][3] == "/":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] / cinta[lotes_trabajados][procesos_trabajados][2]
+    elif cinta[lotes_trabajados][procesos_trabajados][3] == "%":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] % cinta[lotes_trabajados][procesos_trabajados][2]
+    elif cinta[lotes_trabajados][procesos_trabajados][3] == "^":
+        resultado = cinta[lotes_trabajados][procesos_trabajados][1] ** cinta[lotes_trabajados][procesos_trabajados][2]
+        
+    table_finalizados.add_row(str(no_programa),operacion,str(resultado),str(lotes_trabajados+1), style=color)
     
 
 def tabla_tiempo_trans() -> Table:
     global tiempo_trans
     tiempo_total = Table.grid(expand=True)
     tiempo_total.add_row(
-        "Tiempo transcurrido " + str(tiempo_trans)
+        "Tiempo transcurrido " + str(tiempo_trans), style="light_slate_blue"
     )
     tiempo_trans += 1
     
     return tiempo_total
 
+
+
 layout = make_layout()
 layout["header"].update(Header())
+layout["main"].size = 20
 layout["main"]["izq"].update(tabla_lote_ejecucion(1))
-layout["main"]["izq"].ratio = 1
+layout["main"]["izq"].ratio = 2
 layout["main"]["centro"].update(tabla_proceso_ejecucion(0,0))
-layout["main"]["centro"].ratio = 2
-layout["main"]["der"].update(tabla_proceso_finalizado())
-layout["main"]["der"].ratio = 2
+layout["main"]["centro"].ratio = 3
+layout["main"]["der"].update(table_finalizados)
+layout["main"]["der"].ratio = 4
 layout["footer"].update(tabla_tiempo_trans())
 
 with Live(layout, refresh_per_second=10) as live:
     contador_proceso = 1
     aumentar_lote = 0
+    color = 0
     for i in range(numero_proceso-1):
         #Apartado para lote en ejecucion
         if contador_proceso == 1:
             layout["main"]["izq"].update(tabla_lote_ejecucion(contador_proceso))
             contador_proceso += 1
-            print("Cnt_pro1: ", contador_proceso)
         elif contador_proceso == 2:
             layout["main"]["izq"].update(tabla_lote_ejecucion(contador_proceso))
             contador_proceso += 1
-            print("Cnt_pro2: ", contador_proceso)
         elif contador_proceso == 3:
             layout["main"]["izq"].update(tabla_lote_ejecucion(contador_proceso))
             contador_proceso = 1
             aumentar_lote = 1
-            print("Cnt_pro3: ", contador_proceso)
-        sleep(2)
 
         #Apartado de proceso en ejecucion
         c_tiem_trans = 0
@@ -237,96 +277,30 @@ with Live(layout, refresh_per_second=10) as live:
             layout["footer"].update(tabla_tiempo_trans())
 
         
-        
-        
-        
+        #Agregar a la tabla los procesos que ya se finalizaron
+        if color == 0:
+            agregar_proceso_fin("grey63")
+            color = 1
+        else:
+            agregar_proceso_fin("medium_purple2")
+            color = 0
+            
+        #Aumentar y mantener un control para los procesos y lotes
         if procesos_trabajados == 2:
             procesos_trabajados = -1
         procesos_trabajados += 1 
         
         if aumentar_lote == 1:
             lotes_trabajados += 1
-            n_lote -= 1
+            if n_lote == 0:
+                pass
+            else:
+                n_lote -= 1
             layout["header"].update(Header())
             aumentar_lote = 0
 
-        
-        
 
-    """
-    for j in range(3):
-            try:
-                
-                layout["main"]["der"].update(tabla_proceso_finalizado())
-            except:
-                pass
-        if i != lotes_trabajados:
-            i+=1
-        else:
-            pass
-    """    
-        #live.update(generate_table())
-
+    layout["main"]["centro"].update(tabla_proceso_ejecucion_fin())
 
 
 print(layout)
-
-
-
-
-"""
-
-class Header:
-    def __rich__(self) -> Panel:
-        grid = Table.grid(expand=True)
-        grid.add_column(justify="center", ratio=1)
-        grid.add_row(
-            "Numero de lotes pendientes: " + str(total_procesos), style="green",
-        )
-        return Panel(grid, style="black on white")
-
-layout["arriba"].size = 3
-layout["arriba"].update(Header())
-
-def generate_table(i) -> Table:
-    table = Table(title ="Lote en ejecucion")
-    table.add_column("Nombre de programador", justify="left", style="bold blue")
-    table.add_column("TME", justify="left", style="bold blue")
-    tiempos = list()
-    for row in range(1,3):
-        try:
-            table.add_row(
-                cinta[i][row][0],str(cinta[i][row][4])
-            )
-            tiempos.append(cinta[i][row][4])
-        except:
-            pass
-    return table
-
-
-
-layout["abajo"]["izq"].update(generate_table(0))
-
-
-with Live(layout, refresh_per_second=10, screen=True):
-  for i in range(n_lote):
-    table = generate_table(i)
-    for _ in range(40):
-        sleep(0.4)
-        layout["abajo"]["izq"].update(generate_table(i))
-    sleep(10)
-
-
-for i in range(n_lote):
-    table, tiempos = generate_table(i)
-    with Live(table, refresh_per_second=4) as live:
-        for _ in range(40):
-            sleep(0.4)
-            layout["abajo"]["izq"].update(generate_table(i))
-    sleep(1)
-
-print(layout)
-
-"""
-
-print(cinta)
