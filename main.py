@@ -36,7 +36,8 @@ def def_operacion(n_operacion,operando1, operando2):
         n_operacion = int(input(""))
         operacion,operando1,operando2 = def_operacion(n_operacion,operando1,operando2)
     return operacion,operando1,operando2
-    
+
+#Para tener un mejor control sobre el programa aquí se tienen todas las variables utilizadas  
 total_procesos = int(input("Ingrese el numero de procesos: "))
 procesos_totales = total_procesos
 cinta, lote, identificadores, tiempos = [], [], [], list()
@@ -90,6 +91,7 @@ while(total_procesos > 0):
     
     total_procesos -= 1
 
+input("\nDe 'Enter' para empezar el procesamiento en lotes.")
 os.system("cls")
 
 #Verificacion para poder la cantidad correcta de lotes que se trabajaran
