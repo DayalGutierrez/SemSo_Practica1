@@ -7,10 +7,10 @@ Todo lo que se necesita para ejecutar el programa es tener python y la libreria 
 $ pip install rich
 
 # Se clona el repositorio
-$ git clone https://github.com/DayalGutierrez/SemSo_Practica1.git
+$ git clone https://github.com/DayalGutierrez/SemSo_Practicas.git
 
 # Entrar al repositorio
-$ cd SemSo_Practica1
+$ cd SemSo_Practicas
 
 # Correr el archivo main
 $ python main.py
