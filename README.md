@@ -6,6 +6,9 @@ Todo lo que se necesita para ejecutar el programa es tener python y la libreria 
 # En caso de no tener la libreria "rich" solo es necesario correr el comando
 $ pip install rich
 
+# En caso de no tener la libreria "pynput" solo es necesario correr el comando
+$ pip install pynput
+
 # Se clona el repositorio
 $ git clone https://github.com/DayalGutierrez/SemSo_Practicas.git
 
