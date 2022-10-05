@@ -1,3 +1,4 @@
+from ast import While
 import os
 from time import sleep
 from rich import print
@@ -11,7 +12,7 @@ from pynput import keyboard as kb
 
 console = Console()
 
-pause, werror, interrupcion = 0,0,0
+pause, werror, interrupcion,nuevo, bcp = 0,0,0,0,0
 
 def def_operacion(n_operacion, operando1, operando2):
     if n_operacion == 1:
@@ -40,10 +41,10 @@ total_procesos = int(input("Ingrese el numero de procesos: "))
 nuevos, listos, bloqueados, terminados = list(), list(), list(), list()
 proceso_ejecucion = 0
 tiempo_global = 0
+idx_id = 1
 
-for i in range(total_procesos):
-    os.system("cls")
-
+def nuevo_proceso():
+    global idx_id
     operando1 = ran(-100, 100)
     operando2 = ran(-100, 100)
     n_operacion = ran(1, 6)
@@ -55,32 +56,39 @@ for i in range(total_procesos):
     tiem_rest = tme
     
     proceso = {
-        "id":i+1, 
+        "id":idx_id, 
         "operando1":operando1,
         "operando2":operando2, 
         "operacion":operacion,
-        "resultado":0,
+        "resultado":"N/A",
         "tme":tme, 
         "tiem_trans":tiem_trans,
         "tiem_rest":tiem_rest,
         "f_respuesta":0,
         "tiem_bloq":0,
-        "tiem_llegada":0,
-        "tiem_finalizacion":0,
-        "tiem_retorno":0,
-        "tiem_respuesta":0,
-        "tiem_espera":0,
-        "tiem_servicio":0
+        "tiem_llegada":"N/A",
+        "tiem_finalizacion":"N/A",
+        "tiem_retorno":"N/A",
+        "tiem_respuesta":"N/A",
+        "tiem_espera":"N/A",
+        "tiem_servicio":"N/A"
         }
-    nuevos.append(proceso)
+    idx_id += 1
+    return proceso
+
+for i in range(total_procesos):
+    os.system("cls")
+
+    nuevos.append(nuevo_proceso())
 
 os.system("cls")
 
 def pulsa(tecla):
-    global pause, werror, interrupcion
-    if pause == 1:
+    global pause, werror, interrupcion, nuevo, bcp
+    if pause == 1 or bcp == 1:
         if tecla == kb.KeyCode.from_char('c'):
             pause = 0
+            bcp = 0
     else:
         if tecla == kb.KeyCode.from_char('p'):
             pause = 1
@@ -88,6 +96,10 @@ def pulsa(tecla):
             werror = 1
         if tecla == kb.KeyCode.from_char('e'):
             interrupcion = 1
+        if tecla == kb.KeyCode.from_char('n'):
+            nuevo = 1
+        if tecla == kb.KeyCode.from_char('b'):
+            bcp = 1
     
 
 escuchador = kb.Listener(pulsa)
@@ -320,10 +332,70 @@ layout["leg"].update(table_terminados)
 layout["foot"]["tiempo"].update(tabla_tiempo_global_inicial())
 layout["foot"]["final"].update(mensaje_final_vacio())
 
+#Seccion del layout de bcp
+
+def make_layout_bcp() -> Layout:
+    """Define el layout de bcp"""
+    layout_bcp = Layout(name="root")
+
+    layout_bcp.split(
+        Layout(name="head")
+    )
+
+    return layout_bcp
+
+
+def make_table_bcp() -> Table:
+    """Genera la tabla de procesos bcp"""
+    table_bcp = Table(title="Procesos")
+    table_bcp.add_column("Identificador",
+                                justify="left",
+                                style="bold blue")
+    table_bcp.add_column("Estado", justify="left", style="bold blue")                            
+    table_bcp.add_column("Operacion", justify="left", style="bold blue")
+    table_bcp.add_column("Resultado", justify="left", style="bold blue")
+    table_bcp.add_column("TLL", justify="left", style="bold blue")
+    table_bcp.add_column("TF", justify="left", style="bold blue")
+    table_bcp.add_column("TRET", justify="left", style="bold blue")
+    table_bcp.add_column("TE", justify="left", style="bold blue")
+    table_bcp.add_column("TS", justify="left", style="bold blue")
+    table_bcp.add_column("Tiempo restante", justify="left", style="bold blue")
+    table_bcp.add_column("TRES", justify="left", style="bold blue")
+
+    return table_bcp
+
+def agregar_proceso_bcp(procesos, estado):
     
-with Live(layout, refresh_per_second=15) as live:
+    for proceso in procesos:
+        try:
+            proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"]
+            proceso["tiem_espera"] = proceso["tiem_retorno"] - proceso["tiem_trans"]
+        except:
+            proceso["tiem_retorno"] = "N/A"
+            proceso["tiem_espera"] = "N/A"
+        
+        proceso["tiem_servicio"] = proceso["tiem_trans"]
+        proceso["tiem_rest"] = proceso["tme"] - proceso["tiem_trans"]
+        
+        table_bcp.add_row(str(proceso["id"]),
+                            estado,
+                            str(proceso["operando1"]) + str(proceso["operacion"]) + str(proceso["operando2"]),
+                            str(proceso["resultado"]),
+                            str(proceso["tiem_llegada"]),
+                            str(proceso["tiem_finalizacion"]),
+                            str(proceso["tiem_retorno"]),
+                            str(proceso["tiem_espera"]),
+                            str(proceso["tiem_servicio"]),
+                            str(proceso["tiem_rest"]),
+                            str(proceso["tiem_respuesta"]),
+                            style="grey63")
+
+#Fin de la seccion del layout de bcp
+    
+with Live(layout, refresh_per_second=20) as live:
     procesos_finalizados = 0
     tiem_bloq_terminado = 0
+    f_bcp = 0
 
     while procesos_finalizados != total_procesos:
         layout["chest"]["der"].update(tabla_bloqueados())
@@ -339,10 +411,27 @@ with Live(layout, refresh_per_second=15) as live:
             for j in range(listos[proceso_ejecucion]["tiem_rest"]):
                 while pause == 1:
                     pass
+                if bcp == 1:
+                    f_bcp = 1
+                while bcp == 1:
+                    layout["head"].visible=False
+                    layout["chest"].visible=False
+                    layout["foot"].visible=False
+                    table_bcp = make_table_bcp()
+                    agregar_proceso_bcp(nuevos,"Nuevo")
+                    agregar_proceso_bcp(listos,"Listo")
+                    agregar_proceso_bcp(bloqueados,"Bloqueado")
+                    agregar_proceso_bcp(terminados,"Finalizado")
+                    while bcp == 1:
+                        layout["leg"].update(table_bcp)
+                if f_bcp == 1:
+                    break
                 if werror == 1:
                     break
                 if interrupcion == 1:
                     listo_a_bloqueado()
+                    break
+                if nuevo == 1:
                     break
 
                 sleep(1)
@@ -366,6 +455,21 @@ with Live(layout, refresh_per_second=15) as live:
         else:
             layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
             for i in range(7):
+                if bcp == 1:
+                    f_bcp = 1
+                while bcp == 1:
+                    layout["head"].visible=False
+                    layout["chest"].visible=False
+                    layout["foot"].visible=False
+                    table_bcp = make_table_bcp()
+                    agregar_proceso_bcp(nuevos,"Nuevo")
+                    agregar_proceso_bcp(listos,"Listo")
+                    agregar_proceso_bcp(bloqueados,"Bloqueado")
+                    agregar_proceso_bcp(terminados,"Finalizado")
+                    while bcp == 1:
+                        layout["leg"].update(table_bcp)
+                if f_bcp == 1:
+                    break
                 sleep(1)
                 for proceso in bloqueados:
                     proceso["tiem_bloq"] += 1
@@ -377,7 +481,10 @@ with Live(layout, refresh_per_second=15) as live:
                     tiem_bloq_terminado = 0
                     bloqueado_a_listo()
                     break
-            interrupcion = 1
+            if f_bcp == 1:
+                pass
+            else:
+                interrupcion = 1
 
         if werror == 1:
             # Aqui se debe calcular el tiempo de servicio
@@ -385,6 +492,20 @@ with Live(layout, refresh_per_second=15) as live:
         
         if interrupcion == 1:
             interrupcion = 0
+        elif nuevo == 1:
+            nuevo = 0
+            if  len(listos) + len(bloqueados) < 3:
+                listos.append(nuevo_proceso())
+            else:
+                nuevos.append(nuevo_proceso())
+            total_procesos += 1
+            layout["head"].update(Header())
+        elif f_bcp == 1:
+            layout["head"].visible=True
+            layout["chest"].visible=True
+            layout["foot"].visible=True
+            layout["leg"].update(table_terminados)
+            f_bcp = 0            
         else:
             #Agregar a la tabla los procesos que ya se finalizaron
             agregar_terminado()
