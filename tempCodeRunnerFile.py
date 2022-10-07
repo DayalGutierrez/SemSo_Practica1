@@ -1,1 +1,1 @@
-tiem_rest
+espera"] = 0

@@ -281,6 +281,7 @@ def nuevo_a_listo():
     global listos, nuevos
     try:
         nuevos[0]["tiem_llegada"] = tiempo_global
+        nuevos[0]["tiem_espera"] = 0
         listos.append(nuevos[0])
         nuevos.pop(0)
     except:
@@ -369,10 +370,8 @@ def agregar_proceso_bcp(procesos, estado):
     for proceso in procesos:
         try:
             proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"]
-            proceso["tiem_espera"] = proceso["tiem_retorno"] - proceso["tiem_trans"]
         except:
             proceso["tiem_retorno"] = "N/A"
-            proceso["tiem_espera"] = "N/A"
         
         proceso["tiem_servicio"] = proceso["tiem_trans"]
         proceso["tiem_rest"] = proceso["tme"] - proceso["tiem_trans"]
@@ -409,22 +408,34 @@ with Live(layout, refresh_per_second=20) as live:
                 listos[proceso_ejecucion]["f_respuesta"] = 1
             
             for j in range(listos[proceso_ejecucion]["tiem_rest"]):
+                layout["foot"]["tiempo"].update(tabla_tiempo_global())
                 while pause == 1:
                     pass
                 if bcp == 1:
+                    ejecucion = list()
+                    try:
+                        ejecucion.append(listos[0])
+                        listos.pop(0)
+                    except:
+                        pass
                     f_bcp = 1
                 while bcp == 1:
                     layout["head"].visible=False
                     layout["chest"].visible=False
-                    layout["foot"].visible=False
                     table_bcp = make_table_bcp()
                     agregar_proceso_bcp(nuevos,"Nuevo")
+                    agregar_proceso_bcp(ejecucion,"Ejecucion")
                     agregar_proceso_bcp(listos,"Listo")
                     agregar_proceso_bcp(bloqueados,"Bloqueado")
                     agregar_proceso_bcp(terminados,"Finalizado")
                     while bcp == 1:
                         layout["leg"].update(table_bcp)
                 if f_bcp == 1:
+                    try:
+                        listos.insert(0,ejecucion[0])
+                        ejecucion.pop(0)
+                    except:
+                        pass
                     break
                 if werror == 1:
                     break
@@ -438,6 +449,14 @@ with Live(layout, refresh_per_second=20) as live:
 
                 listos[proceso_ejecucion]["tiem_trans"] += 1
                 listos[proceso_ejecucion]["tiem_rest"] -= 1
+                for i in range (1,3):
+                    try:
+                        listos[i]["tiem_espera"] += 1
+                    except:
+                        pass
+                for procesoB in bloqueados:
+                    procesoB["tiem_espera"] += 1
+
                 for proceso in bloqueados:
                     proceso["tiem_bloq"] += 1
                     if proceso["tiem_bloq"] == 7:
@@ -445,7 +464,6 @@ with Live(layout, refresh_per_second=20) as live:
 
                 layout["chest"]["centro"].update(tabla_proceso_ejecucion())
                 layout["chest"]["der"].update(tabla_bloqueados())
-                layout["foot"]["tiempo"].update(tabla_tiempo_global())
 
                 if tiem_bloq_terminado == 1:
                     tiem_bloq_terminado = 0
@@ -454,13 +472,14 @@ with Live(layout, refresh_per_second=20) as live:
                     break
         else:
             layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
+            print("elkse")
             for i in range(7):
+                layout["foot"]["tiempo"].update(tabla_tiempo_global())
                 if bcp == 1:
                     f_bcp = 1
                 while bcp == 1:
                     layout["head"].visible=False
                     layout["chest"].visible=False
-                    layout["foot"].visible=False
                     table_bcp = make_table_bcp()
                     agregar_proceso_bcp(nuevos,"Nuevo")
                     agregar_proceso_bcp(listos,"Listo")
@@ -470,18 +489,23 @@ with Live(layout, refresh_per_second=20) as live:
                         layout["leg"].update(table_bcp)
                 if f_bcp == 1:
                     break
+                
+                if nuevo == 1:
+                    break
+
                 sleep(1)
                 for proceso in bloqueados:
                     proceso["tiem_bloq"] += 1
                     if proceso["tiem_bloq"] == 7:
                         tiem_bloq_terminado = 1
                 layout["chest"]["der"].update(tabla_bloqueados())
-                layout["foot"]["tiempo"].update(tabla_tiempo_global())
                 if tiem_bloq_terminado == 1:
                     tiem_bloq_terminado = 0
                     bloqueado_a_listo()
                     break
             if f_bcp == 1:
+                pass
+            elif nuevo == 1:
                 pass
             else:
                 interrupcion = 1
@@ -495,7 +519,10 @@ with Live(layout, refresh_per_second=20) as live:
         elif nuevo == 1:
             nuevo = 0
             if  len(listos) + len(bloqueados) < 3:
-                listos.append(nuevo_proceso())
+                new_proceso = nuevo_proceso()
+                new_proceso["tiem_llegada"] = tiempo_global
+                new_proceso["tiem_espera"] = 0
+                listos.append(new_proceso)
             else:
                 nuevos.append(nuevo_proceso())
             total_procesos += 1
@@ -503,7 +530,6 @@ with Live(layout, refresh_per_second=20) as live:
         elif f_bcp == 1:
             layout["head"].visible=True
             layout["chest"].visible=True
-            layout["foot"].visible=True
             layout["leg"].update(table_terminados)
             f_bcp = 0            
         else:
@@ -554,7 +580,6 @@ table_final.add_column("TS", justify="left", style="bold blue")
 
 for proceso in terminados:
     proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"]
-    proceso["tiem_espera"] = proceso["tiem_retorno"] - proceso["tiem_trans"]
     proceso["tiem_servicio"] = proceso["tiem_trans"]
     proceso["tiem_rest"] = proceso["tme"] - proceso["tiem_trans"]
     
