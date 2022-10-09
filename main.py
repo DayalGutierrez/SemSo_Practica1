@@ -330,7 +330,7 @@ layout["chest"]["der"].update(tabla_bloqueados())
 layout["chest"]["der"].ratio = 2
 layout["leg"].size = 20
 layout["leg"].update(table_terminados)
-layout["foot"]["tiempo"].update(tabla_tiempo_global_inicial())
+layout["foot"]["tiempo"].update(tabla_tiempo_global())
 layout["foot"]["final"].update(mensaje_final_vacio())
 
 #Seccion del layout de bcp
@@ -408,7 +408,6 @@ with Live(layout, refresh_per_second=20) as live:
                 listos[proceso_ejecucion]["f_respuesta"] = 1
             
             for j in range(listos[proceso_ejecucion]["tiem_rest"]):
-                layout["foot"]["tiempo"].update(tabla_tiempo_global())
                 while pause == 1:
                     pass
                 if bcp == 1:
@@ -464,6 +463,7 @@ with Live(layout, refresh_per_second=20) as live:
 
                 layout["chest"]["centro"].update(tabla_proceso_ejecucion())
                 layout["chest"]["der"].update(tabla_bloqueados())
+                layout["foot"]["tiempo"].update(tabla_tiempo_global())
 
                 if tiem_bloq_terminado == 1:
                     tiem_bloq_terminado = 0
@@ -472,9 +472,7 @@ with Live(layout, refresh_per_second=20) as live:
                     break
         else:
             layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
-            print("elkse")
             for i in range(7):
-                layout["foot"]["tiempo"].update(tabla_tiempo_global())
                 if bcp == 1:
                     f_bcp = 1
                 while bcp == 1:
@@ -498,7 +496,10 @@ with Live(layout, refresh_per_second=20) as live:
                     proceso["tiem_bloq"] += 1
                     if proceso["tiem_bloq"] == 7:
                         tiem_bloq_terminado = 1
+                        
                 layout["chest"]["der"].update(tabla_bloqueados())
+                layout["foot"]["tiempo"].update(tabla_tiempo_global())
+
                 if tiem_bloq_terminado == 1:
                     tiem_bloq_terminado = 0
                     bloqueado_a_listo()
