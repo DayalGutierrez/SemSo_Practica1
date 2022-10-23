@@ -1,5 +1,6 @@
 from ast import While
 import os
+from statistics import quantiles
 from time import sleep
 from rich import print
 from rich.layout import Layout
@@ -12,7 +13,7 @@ from pynput import keyboard as kb
 
 console = Console()
 
-pause, werror, interrupcion,nuevo, bcp = 0,0,0,0,0
+pause, werror, interrupcion, nuevo, bcp = 0,0,0,0,0
 
 def def_operacion(n_operacion, operando1, operando2):
     if n_operacion == 1:
@@ -37,6 +38,9 @@ def def_operacion(n_operacion, operando1, operando2):
     return operacion, operando1, operando2
 
 total_procesos = int(input("Ingrese el numero de procesos: "))
+quantum = int(input("Ingrese el quantum del procesador: "))
+
+quantum_control = 0
 
 nuevos, listos, bloqueados, terminados = list(), list(), list(), list()
 proceso_ejecucion = 0
@@ -111,8 +115,8 @@ def make_layout() -> Layout:
 
     layout.split(
         Layout(name="head", size=3),
-        Layout(name="chest", ratio=1),
-        Layout(name="leg", ratio=1),
+        Layout(name="chest", size=12),
+        Layout(name="leg", size=20),
         Layout(name="foot", size=3),
     )
     layout["chest"].split_row(Layout(name="izq"), Layout(name="centro"),
@@ -130,7 +134,7 @@ class Header:
         grid.add_column(justify="left", ratio=1)
         grid.add_row(
             "Procesos restantes: ",
-            str(len(nuevos)),
+            str(len(nuevos)) + "        Quantum: " + str(quantum),
             style="grey3",
         )
 
@@ -176,14 +180,15 @@ def tabla_proceso_ejecucion() -> Table:
                   str(listos[proceso_ejecucion]["operando1"]) +
                   str(listos[proceso_ejecucion]["operacion"]) +
                   str(listos[proceso_ejecucion]["operando2"]),
-                  style="medium_purple2")
+                  style="grey63")
     table.add_row("TME: ",
                   str(listos[proceso_ejecucion]["tme"]),
                   style="grey63")
     table.add_row("Tiempo transcurrido: ", str(listos[proceso_ejecucion]["tiem_trans"]), style="grey63")
     table.add_row("Tiempo restante: ",
                   str(listos[proceso_ejecucion]["tiem_rest"]),
-                  style="medium_purple2")
+                  style="grey63")
+    table.add_row("Quantum transcurrido: ", str(quantum_control), style="grey63")
 
     return table
 
@@ -193,10 +198,11 @@ def tabla_proceso_ejecucion_fin() -> Table:
     table.add_column("Datos", justify="left", style="bold blue")
     table.add_column("Informacion", justify="left", style="bold blue")
     table.add_row("Identificador: ", style="grey63")
-    table.add_row("Operacion: ", style="medium_purple2")
+    table.add_row("Operacion: ", style="grey63")
     table.add_row("TME: ", style="grey63")
-    table.add_row("Tiempo transcurrido: ", style="medium_purple2")
+    table.add_row("Tiempo transcurrido: ", style="grey63")
     table.add_row("Tiempo restante: ", style="grey63")
+    table.add_row("Quantum transcurrido: ", style="grey63")
     return table
 
 def tabla_bloqueados() -> Table:
@@ -316,12 +322,21 @@ def listo_a_terminado():
     except:
         pass
 
+def ejecucion_a_listo():
+    global listos
+    try:
+        p_ejecucion = listos[0]
+        listos.pop(0)
+        listos.append(p_ejecucion)
+    except:
+        pass
+
 for i in range (3):        
     nuevo_a_listo()
 
 layout = make_layout()
 layout["head"].update(Header())
-layout["chest"].size = 10
+layout["chest"].size = 12
 layout["chest"]["izq"].update(tabla_listos(1,2))
 layout["chest"]["izq"].ratio = 2
 layout["chest"]["centro"].update(tabla_proceso_ejecucion())
@@ -396,6 +411,7 @@ with Live(layout, refresh_per_second=20) as live:
     tiem_bloq_terminado = 0
     f_bcp = 0
 
+
     while procesos_finalizados != total_procesos:
         layout["chest"]["der"].update(tabla_bloqueados())
         layout["chest"]["izq"].update(tabla_listos(1,2))  
@@ -404,10 +420,15 @@ with Live(layout, refresh_per_second=20) as live:
             layout["chest"]["centro"].update(tabla_proceso_ejecucion())
 
             if listos[proceso_ejecucion]["f_respuesta"] == 0:
-                listos[proceso_ejecucion]["tiem_respuesta"] = tiempo_global - listos[proceso_ejecucion]["tiem_llegada"]
-                listos[proceso_ejecucion]["f_respuesta"] = 1
+                if listos[proceso_ejecucion]["id"] != 1:
+                    listos[proceso_ejecucion]["tiem_respuesta"] = tiempo_global - listos[proceso_ejecucion]["tiem_llegada"]
+                    listos[proceso_ejecucion]["f_respuesta"] = 1
+                else:
+                    listos[proceso_ejecucion]["tiem_respuesta"] = 0
+                    listos[proceso_ejecucion]["f_respuesta"] = 1
+
             
-            for j in range(listos[proceso_ejecucion]["tiem_rest"]):
+            while quantum_control < quantum:
                 while pause == 1:
                     pass
                 if bcp == 1:
@@ -429,6 +450,8 @@ with Live(layout, refresh_per_second=20) as live:
                     agregar_proceso_bcp(terminados,"Finalizado")
                     while bcp == 1:
                         layout["leg"].update(table_bcp)
+                
+                
                 if f_bcp == 1:
                     try:
                         listos.insert(0,ejecucion[0])
@@ -437,26 +460,31 @@ with Live(layout, refresh_per_second=20) as live:
                         pass
                     break
                 if werror == 1:
+                    quantum_control = 0
                     break
                 if interrupcion == 1:
+                    quantum_control = 0
                     listo_a_bloqueado()
                     break
                 if nuevo == 1:
                     break
-
+                if listos[proceso_ejecucion]["tiem_rest"] == 0:
+                    break
                 sleep(1)
 
                 listos[proceso_ejecucion]["tiem_trans"] += 1
                 listos[proceso_ejecucion]["tiem_rest"] -= 1
+                
+                quantum_control += 1
+
                 for i in range (1,3):
                     try:
                         listos[i]["tiem_espera"] += 1
                     except:
-                        pass
-                for procesoB in bloqueados:
-                    procesoB["tiem_espera"] += 1
+                        pass                
 
                 for proceso in bloqueados:
+                    proceso["tiem_espera"] += 1
                     proceso["tiem_bloq"] += 1
                     if proceso["tiem_bloq"] == 7:
                         tiem_bloq_terminado = 1
@@ -470,7 +498,12 @@ with Live(layout, refresh_per_second=20) as live:
                     interrupcion = 1
                     bloqueado_a_listo()
                     break
+
+                if listos[proceso_ejecucion]["tiem_rest"] == 0:
+                    break
+
         else:
+            quantum_control = 0
             layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
             for i in range(7):
                 if bcp == 1:
@@ -512,7 +545,6 @@ with Live(layout, refresh_per_second=20) as live:
                 interrupcion = 1
 
         if werror == 1:
-            # Aqui se debe calcular el tiempo de servicio
             listos[proceso_ejecucion]["tiem_rest"] = 0
         
         if interrupcion == 1:
@@ -532,8 +564,12 @@ with Live(layout, refresh_per_second=20) as live:
             layout["head"].visible=True
             layout["chest"].visible=True
             layout["leg"].update(table_terminados)
-            f_bcp = 0            
+            f_bcp = 0
+        elif listos[proceso_ejecucion]["tiem_rest"] != 0 and quantum_control == quantum:
+            quantum_control = 0
+            ejecucion_a_listo()
         else:
+            quantum_control = 0
             #Agregar a la tabla los procesos que ya se finalizaron
             agregar_terminado()
             
