@@ -1,4 +1,3 @@
-from ast import While
 import os
 from statistics import quantiles
 from time import sleep
@@ -13,7 +12,7 @@ from pynput import keyboard as kb
 
 console = Console()
 
-pause, werror, interrupcion, nuevo, bcp = 0,0,0,0,0
+pause, werror, interrupcion, nuevo, bcp, tab_paginacion = 0,0,0,0,0,0
 
 def def_operacion(n_operacion, operando1, operando2):
     if n_operacion == 1:
@@ -42,10 +41,17 @@ quantum = int(input("Ingrese el quantum del procesador: "))
 
 quantum_control = 0
 
-nuevos, listos, bloqueados, terminados = list(), list(), list(), list()
+nuevos, listos, bloqueados, terminados, memoria = list(), list(), list(), list(), list()
 proceso_ejecucion = 0
 tiempo_global = 0
 idx_id = 1
+
+for i in range(40):
+    pagina = ["0/5","N/A","N/A"]
+    memoria.append(pagina)
+for i in range(4):
+    pagina = ["5/5", "SO", "SO"]
+    memoria.append(pagina)
 
 def nuevo_proceso():
     global idx_id
@@ -58,6 +64,7 @@ def nuevo_proceso():
     tme = ran(6, 16)
     tiem_trans = 0
     tiem_rest = tme
+    tamanio = ran(6,28)
     
     proceso = {
         "id":idx_id, 
@@ -75,7 +82,9 @@ def nuevo_proceso():
         "tiem_retorno":"N/A",
         "tiem_respuesta":"N/A",
         "tiem_espera":"N/A",
-        "tiem_servicio":"N/A"
+        "tiem_servicio":"N/A",
+        "tamanio":tamanio,
+        "estado": "Nuevo"
         }
     idx_id += 1
     return proceso
@@ -88,11 +97,12 @@ for i in range(total_procesos):
 os.system("cls")
 
 def pulsa(tecla):
-    global pause, werror, interrupcion, nuevo, bcp
-    if pause == 1 or bcp == 1:
+    global pause, werror, interrupcion, nuevo, bcp, tab_paginacion
+    if pause == 1 or bcp == 1 or tab_paginacion == 1:
         if tecla == kb.KeyCode.from_char('c'):
             pause = 0
             bcp = 0
+            tab_paginacion = 0
     else:
         if tecla == kb.KeyCode.from_char('p'):
             pause = 1
@@ -104,6 +114,9 @@ def pulsa(tecla):
             nuevo = 1
         if tecla == kb.KeyCode.from_char('b'):
             bcp = 1
+        if tecla == kb.KeyCode.from_char('t'):
+            tab_paginacion = 1
+
     
 
 escuchador = kb.Listener(pulsa)
@@ -116,11 +129,12 @@ def make_layout() -> Layout:
     layout.split(
         Layout(name="head", size=3),
         Layout(name="chest", size=12),
-        Layout(name="leg", size=20),
+        Layout(name="leg", size=30),
         Layout(name="foot", size=3),
     )
     layout["chest"].split_row(Layout(name="izq"), Layout(name="centro"),
                              Layout(name="der"))
+    layout["leg"].split_row(Layout(name="left"), Layout(name="right"))
     layout["foot"].split_row(Layout(name="tiempo"), Layout(name="final"))
     return layout
 
@@ -132,15 +146,22 @@ class Header:
         grid = Table.grid(expand=True)
         grid.add_column(justify="right", ratio=1)
         grid.add_column(justify="left", ratio=1)
-        grid.add_row(
-            "Procesos restantes: ",
-            str(len(nuevos)) + "        Quantum: " + str(quantum),
-            style="grey3",
-        )
+        try:
+            grid.add_row(
+                "Procesos restantes: ",
+                str(len(nuevos)) + "        Quantum: " + str(quantum) + "        Siguiente: " + str(nuevos[0]["id"]) + ", tamaño: " + str(nuevos[0]["tamanio"]),
+                style="grey3",
+            )
+        except:
+            grid.add_row(
+                "Procesos restantes: ",
+                str(len(nuevos)) + "        Quantum: " + str(quantum),
+                style="grey3",
+            )
 
         return Panel(grid, style="white on blue")
 
-def tabla_listos(indice1,indice2) -> Table:
+def tabla_listos() -> Table:
     """Genera la tabla de listos"""
 
     table = Table(title="Procesos listos")
@@ -151,20 +172,8 @@ def tabla_listos(indice1,indice2) -> Table:
     table.add_column("TME", justify="left", style="light_slate_blue")
     table.add_column("Tiempo transcurrido", justify="left", style="light_slate_blue")
     
-    try:
-        if listos[indice1]["tiem_rest"] == 0:
-            pass
-        else:
-            table.add_row(str(listos[indice1]["id"]),str(listos[indice1]["tme"]),str(listos[indice1]["tiem_trans"]))
-    except:
-        pass
-    try:
-        if listos[indice2]["tiem_rest"] == 0:
-            pass
-        else:
-            table.add_row(str(listos[indice2]["id"]),str(listos[indice2]["tme"]),str(listos[indice2]["tiem_trans"]))
-    except:
-        pass
+    for i in range(1,len(listos)):        
+        table.add_row(str(listos[i]["id"]),str(listos[i]["tme"]),str(listos[i]["tiem_trans"]))
     return table
 
 def tabla_proceso_ejecucion() -> Table:
@@ -282,23 +291,101 @@ def mensaje_final_vacio() -> Table:
 
     return mensaje
 
+def tabla_memoria() ->Table:
+    tabla_memoria = Table(title="Memoria")
+    tabla_memoria.add_column("No. Marco", justify="left", style="light_slate_blue")
+    tabla_memoria.add_column("ESP  ID   EST", justify="left", style="light_slate_blue")
+    tabla_memoria.add_column("No. Marco", justify="left", style="light_slate_blue")
+    tabla_memoria.add_column("ESP  ID   EST", justify="left", style="light_slate_blue")
+    for i in range(0,44,2):
+        tabla_memoria.add_row(str(i), str(str(memoria[i][0]) + "  " + memoria[i][1]+ "  " + memoria[i][2]), str(i+1), str(str(memoria[i+1][0]) + "  " + memoria[i+1][1] + "  " + memoria[i+1][2]))
+
+    return tabla_memoria
+
+def nuevo_a_listo_inicial():
+    # Seccion de llenado de procesos listos
+    global listos, nuevos, memoria
+    for i in range(len(nuevos)):
+        espacio_memoria = 0
+        for frame in memoria:
+            if frame[0] == "0/5":
+                espacio_memoria += 1
+        if espacio_memoria >= nuevos[0]["tamanio"]/5:
+            tamanio = nuevos[0]["tamanio"]
+            if i == 0:
+                nuevos[0]["estado"] = "Ejecucion"
+            else:
+                nuevos[0]["estado"] = "Listo"
+
+            for frame in memoria:
+                if frame[0] == "0/5" and tamanio > 0:
+                    if tamanio/5 > 1:
+                        frame[0] = "5/5"
+                        frame[1] = str(nuevos[0]["id"])
+                        frame[2] = nuevos[0]["estado"]
+                        tamanio -= 5
+                    else:
+                        frame[0] = str(tamanio) + "/5"
+                        frame[1] = str(nuevos[0]["id"])
+                        frame[2] = nuevos[0]["estado"]
+                        tamanio = 0
+                if tamanio == 0:
+                    break
+            nuevos[0]["tiem_llegada"] = tiempo_global
+            nuevos[0]["tiem_espera"] = 0
+            listos.append(nuevos[0])
+            nuevos.pop(0)
+        else:
+            break
+        
 def nuevo_a_listo():
     # Seccion de llenado de procesos listos
-    global listos, nuevos
-    try:
-        nuevos[0]["tiem_llegada"] = tiempo_global
-        nuevos[0]["tiem_espera"] = 0
-        listos.append(nuevos[0])
-        nuevos.pop(0)
-    except:
-        pass
+    global listos, nuevos, memoria
+    for i in range(len(nuevos)):
+        espacio_memoria = 0
+        for frame in memoria:
+            if frame[0] == "0/5":
+                espacio_memoria += 1
+        if espacio_memoria >= nuevos[0]["tamanio"]/5:
+            tamanio = nuevos[0]["tamanio"]
+            if len(listos)==0:
+                nuevos[0]["estado"] = "Ejecucion"
+            else:
+                nuevos[0]["estado"] = "Listo"
+
+            for frame in memoria:
+                if frame[0] == "0/5" and tamanio > 0:
+                    if tamanio/5 > 1:
+                        frame[0] = "5/5"
+                        frame[1] = str(nuevos[0]["id"])
+                        frame[2] = nuevos[0]["estado"]
+                        tamanio -= 5
+                    else:
+                        frame[0] = str(tamanio) + "/5"
+                        frame[1] = str(nuevos[0]["id"])
+                        frame[2] = nuevos[0]["estado"]
+                        tamanio = 0
+                if tamanio == 0:
+                    break
+            nuevos[0]["tiem_llegada"] = tiempo_global - 1
+            nuevos[0]["tiem_espera"] = 0
+            listos.append(nuevos[0])
+            nuevos.pop(0)
+        else:
+            break
 
 def listo_a_bloqueado():
     # Seccion de interrupción
     global listos, bloqueados
     try:
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i][2] = "Bloqueado"
         bloqueados.append(listos[0])
         listos.pop(0)
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i][2] = "Ejecucion"
     except:
         pass
 
@@ -307,6 +394,9 @@ def bloqueado_a_listo():
     global listos, bloqueados
     bloqueados[0]["tiem_bloq"] = 0
     try:
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(bloqueados[0]["id"]):
+                memoria[i][2] = "Listo"
         listos.append(bloqueados[0])
         bloqueados.pop(0)
     except:
@@ -317,39 +407,52 @@ def listo_a_terminado():
     global listos, terminados
     try:
         listos[0]["tiem_finalizacion"] = tiempo_global
+        listos[0]["estado"] = "Terminado"
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i] = ["0/5","N/A","N/A"]
+        
         terminados.append(listos[0])
         listos.pop(0)
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i][2] = "Ejecucion"
     except:
         pass
 
 def ejecucion_a_listo():
     global listos
     try:
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i][2] = "Listo"
         p_ejecucion = listos[0]
         listos.pop(0)
         listos.append(p_ejecucion)
+        for i in range(len(memoria)):
+            if memoria[i][1] == str(listos[0]["id"]):
+                memoria[i][2] = "Ejecucion"
     except:
         pass
 
-for i in range (3):        
-    nuevo_a_listo()
+nuevo_a_listo_inicial()
 
 layout = make_layout()
 layout["head"].update(Header())
-layout["chest"].size = 12
-layout["chest"]["izq"].update(tabla_listos(1,2))
+layout["chest"].size = 20
+layout["chest"]["izq"].update(tabla_listos())
 layout["chest"]["izq"].ratio = 2
 layout["chest"]["centro"].update(tabla_proceso_ejecucion())
 layout["chest"]["centro"].ratio = 3
 layout["chest"]["der"].update(tabla_bloqueados())
 layout["chest"]["der"].ratio = 2
-layout["leg"].size = 20
-layout["leg"].update(table_terminados)
+layout["leg"].size = 30
+layout["leg"]["left"].update(table_terminados)
+layout["leg"]["right"].update(tabla_memoria())
 layout["foot"]["tiempo"].update(tabla_tiempo_global())
 layout["foot"]["final"].update(mensaje_final_vacio())
 
 #Seccion del layout de bcp
-
 def make_layout_bcp() -> Layout:
     """Define el layout de bcp"""
     layout_bcp = Layout(name="root")
@@ -359,7 +462,6 @@ def make_layout_bcp() -> Layout:
     )
 
     return layout_bcp
-
 
 def make_table_bcp() -> Table:
     """Genera la tabla de procesos bcp"""
@@ -384,7 +486,7 @@ def agregar_proceso_bcp(procesos, estado):
     
     for proceso in procesos:
         try:
-            proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"]
+            proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"] - 1
         except:
             proceso["tiem_retorno"] = "N/A"
         
@@ -411,10 +513,10 @@ with Live(layout, refresh_per_second=20) as live:
     tiem_bloq_terminado = 0
     f_bcp = 0
 
-
     while procesos_finalizados != total_procesos:
         layout["chest"]["der"].update(tabla_bloqueados())
-        layout["chest"]["izq"].update(tabla_listos(1,2))  
+        layout["chest"]["izq"].update(tabla_listos())
+        layout["leg"]["right"].update(tabla_memoria())  
         
         if len(listos) > 0:
             layout["chest"]["centro"].update(tabla_proceso_ejecucion())
@@ -429,7 +531,7 @@ with Live(layout, refresh_per_second=20) as live:
 
             
             while quantum_control < quantum:
-                while pause == 1:
+                while pause == 1 or tab_paginacion == 1:
                     pass
                 if bcp == 1:
                     ejecucion = list()
@@ -442,6 +544,7 @@ with Live(layout, refresh_per_second=20) as live:
                 while bcp == 1:
                     layout["head"].visible=False
                     layout["chest"].visible=False
+                    layout["leg"]["right"].visible=False
                     table_bcp = make_table_bcp()
                     agregar_proceso_bcp(nuevos,"Nuevo")
                     agregar_proceso_bcp(ejecucion,"Ejecucion")
@@ -449,8 +552,7 @@ with Live(layout, refresh_per_second=20) as live:
                     agregar_proceso_bcp(bloqueados,"Bloqueado")
                     agregar_proceso_bcp(terminados,"Finalizado")
                     while bcp == 1:
-                        layout["leg"].update(table_bcp)
-                
+                        layout["leg"]["left"].update(table_bcp)
                 
                 if f_bcp == 1:
                     try:
@@ -477,7 +579,7 @@ with Live(layout, refresh_per_second=20) as live:
                 
                 quantum_control += 1
 
-                for i in range (1,3):
+                for i in range (1,len(listos)):
                     try:
                         listos[i]["tiem_espera"] += 1
                     except:
@@ -486,7 +588,7 @@ with Live(layout, refresh_per_second=20) as live:
                 for proceso in bloqueados:
                     proceso["tiem_espera"] += 1
                     proceso["tiem_bloq"] += 1
-                    if proceso["tiem_bloq"] == 7:
+                    if proceso["tiem_bloq"] == 8:
                         tiem_bloq_terminado = 1
 
                 layout["chest"]["centro"].update(tabla_proceso_ejecucion())
@@ -501,23 +603,26 @@ with Live(layout, refresh_per_second=20) as live:
 
                 if listos[proceso_ejecucion]["tiem_rest"] == 0:
                     break
-
+            
         else:
             quantum_control = 0
             layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
-            for i in range(7):
+            for i in range(8):
+                while pause == 1 or tab_paginacion == 1:
+                    pass
                 if bcp == 1:
                     f_bcp = 1
                 while bcp == 1:
                     layout["head"].visible=False
                     layout["chest"].visible=False
+                    layout["leg"]["right"].visible=False
                     table_bcp = make_table_bcp()
                     agregar_proceso_bcp(nuevos,"Nuevo")
                     agregar_proceso_bcp(listos,"Listo")
                     agregar_proceso_bcp(bloqueados,"Bloqueado")
                     agregar_proceso_bcp(terminados,"Finalizado")
                     while bcp == 1:
-                        layout["leg"].update(table_bcp)
+                        layout["leg"]["left"].update(table_bcp)
                 if f_bcp == 1:
                     break
                 
@@ -526,8 +631,9 @@ with Live(layout, refresh_per_second=20) as live:
 
                 sleep(1)
                 for proceso in bloqueados:
+                    proceso["tiem_espera"] += 1
                     proceso["tiem_bloq"] += 1
-                    if proceso["tiem_bloq"] == 7:
+                    if proceso["tiem_bloq"] == 8:
                         tiem_bloq_terminado = 1
                         
                 layout["chest"]["der"].update(tabla_bloqueados())
@@ -551,19 +657,24 @@ with Live(layout, refresh_per_second=20) as live:
             interrupcion = 0
         elif nuevo == 1:
             nuevo = 0
-            if  len(listos) + len(bloqueados) < 3:
-                new_proceso = nuevo_proceso()
-                new_proceso["tiem_llegada"] = tiempo_global
-                new_proceso["tiem_espera"] = 0
-                listos.append(new_proceso)
-            else:
-                nuevos.append(nuevo_proceso())
+            # if  len(listos) + len(bloqueados) < 3:
+            #     new_proceso = nuevo_proceso()
+            #     new_proceso["tiem_llegada"] = tiempo_global - 1
+            #     new_proceso["tiem_espera"] = 0
+            #     listos.append(new_proceso)
+            # else:
+            new_proceso = nuevo_proceso()
+            new_proceso["tiem_llegada"] = tiempo_global - 1
+            new_proceso["tiem_espera"] = 0
+            nuevos.append(new_proceso)
+            nuevo_a_listo()
             total_procesos += 1
             layout["head"].update(Header())
         elif f_bcp == 1:
             layout["head"].visible=True
             layout["chest"].visible=True
-            layout["leg"].update(table_terminados)
+            layout["leg"]["right"].visible=True
+            layout["leg"]["left"].update(table_terminados)
             f_bcp = 0
         elif listos[proceso_ejecucion]["tiem_rest"] != 0 and quantum_control == quantum:
             quantum_control = 0
@@ -581,6 +692,11 @@ with Live(layout, refresh_per_second=20) as live:
             layout["head"].update(Header())
 
     layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
+    for frame in memoria:
+        frame[0] = "0/5"
+        frame[1] = "N/A"
+        frame[2] = "N/A"
+    layout["leg"]["right"].update(tabla_memoria())
     layout["foot"]["final"].update(mensaje_final())
 
     input()
@@ -616,7 +732,7 @@ table_final.add_column("TE", justify="left", style="bold blue")
 table_final.add_column("TS", justify="left", style="bold blue")
 
 for proceso in terminados:
-    proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"]
+    proceso["tiem_retorno"] = proceso["tiem_finalizacion"] - proceso["tiem_llegada"] - 1
     proceso["tiem_servicio"] = proceso["tiem_trans"]
     proceso["tiem_rest"] = proceso["tme"] - proceso["tiem_trans"]
     
