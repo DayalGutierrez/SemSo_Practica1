@@ -12,7 +12,7 @@ from pynput import keyboard as kb
 
 console = Console()
 
-pause, werror, interrupcion, nuevo, bcp, tab_paginacion = 0,0,0,0,0,0
+pause, werror, interrupcion, nuevo, bcp, tab_paginacion,suspendido,regresa = 0,0,0,0,0,0,0,0
 
 def def_operacion(n_operacion, operando1, operando2):
     if n_operacion == 1:
@@ -45,6 +45,7 @@ nuevos, listos, bloqueados, terminados, memoria = list(), list(), list(), list()
 proceso_ejecucion = 0
 tiempo_global = 0
 idx_id = 1
+proceso_a_cambiar = dict()
 
 for i in range(40):
     pagina = ["0/5","N/A","N/A"]
@@ -88,6 +89,28 @@ def nuevo_proceso():
         }
     idx_id += 1
     return proceso
+def nuevo_proceso_sin_id():
+    proceso = {
+        "id":0, 
+        "operando1":1,
+        "operando2":1, 
+        "operacion":1,
+        "resultado":"N/A",
+        "tme":1, 
+        "tiem_trans":1,
+        "tiem_rest":1,
+        "f_respuesta":1,
+        "tiem_bloq":0,
+        "tiem_llegada":"N/A",
+        "tiem_finalizacion":"N/A",
+        "tiem_retorno":"N/A",
+        "tiem_respuesta":"N/A",
+        "tiem_espera":"N/A",
+        "tiem_servicio":"N/A",
+        "tamanio":1,
+        "estado": "Nuevo"
+        }
+    return proceso
 
 for i in range(total_procesos):
     os.system("cls")
@@ -97,7 +120,7 @@ for i in range(total_procesos):
 os.system("cls")
 
 def pulsa(tecla):
-    global pause, werror, interrupcion, nuevo, bcp, tab_paginacion
+    global pause, werror, interrupcion, nuevo, bcp, tab_paginacion,suspendido,regresa
     if pause == 1 or bcp == 1 or tab_paginacion == 1:
         if tecla == kb.KeyCode.from_char('c'):
             pause = 0
@@ -116,6 +139,10 @@ def pulsa(tecla):
             bcp = 1
         if tecla == kb.KeyCode.from_char('t'):
             tab_paginacion = 1
+        if tecla == kb.KeyCode.from_char('s'):
+            suspendido = 1
+        if tecla == kb.KeyCode.from_char('r'):
+            regresa = 1
 
     
 
@@ -144,20 +171,46 @@ class Header:
 
     def __rich__(self) -> Panel:
         grid = Table.grid(expand=True)
-        grid.add_column(justify="right", ratio=1)
-        grid.add_column(justify="left", ratio=1)
+        grid.add_column(justify="center", ratio=1)
         try:
-            grid.add_row(
-                "Procesos restantes: ",
-                str(len(nuevos)) + "        Quantum: " + str(quantum) + "        Siguiente: " + str(nuevos[0]["id"]) + ", tamaño: " + str(nuevos[0]["tamanio"]),
-                style="grey3",
-            )
+            with open("suspendidos.txt", "r") as archivo:
+                proceso_suspendido = archivo.readline()
+                if proceso_suspendido == "":
+                    raise Exception('No hay archivos suspendidos')
+                else:
+                    n_procesos_suspendidos = len(archivo.readlines()) + 1
+            proceso_suspendido = proceso_suspendido.split()
+            try:
+                grid.add_row(
+                    "Procesos restantes: " +
+                    str(len(nuevos)) + "        Quantum: " + str(quantum) + 
+                    "        Siguiente: " + str(nuevos[0]["id"]) + ", tamaño: " + str(nuevos[0]["tamanio"])+
+                    "        Num suspendidos: " + str(n_procesos_suspendidos) +
+                    ",  Suspendido Sig(id): " + str(proceso_suspendido[0])+ ", tamaño: " + str(proceso_suspendido[16]),
+                    style="grey3",
+                )
+            except:
+                grid.add_row(
+                    "Procesos restantes: " +
+                    str(len(nuevos)) + "        Quantum: " + str(quantum) + 
+                    "        Num suspendidos: " + str(n_procesos_suspendidos) +
+                    ",  Suspendido Sig(id): " + str(proceso_suspendido[0])+ ", tamaño: " + str(proceso_suspendido[16]),
+                    style="grey3",
+                )
         except:
-            grid.add_row(
-                "Procesos restantes: ",
-                str(len(nuevos)) + "        Quantum: " + str(quantum),
-                style="grey3",
-            )
+            try:
+                grid.add_row(
+                    "Procesos restantes: " +
+                    str(len(nuevos)) + "        Quantum: " + str(quantum) + 
+                    "        Siguiente: " + str(nuevos[0]["id"]) + ", tamaño: " + str(nuevos[0]["tamanio"]),
+                    style="grey3",
+                )
+            except:
+                grid.add_row(
+                    "Procesos restantes: "+
+                    str(len(nuevos)) + "        Quantum: " + str(quantum),
+                    style="grey3",
+                )
 
         return Panel(grid, style="white on blue")
 
@@ -507,6 +560,88 @@ def agregar_proceso_bcp(procesos, estado):
                             style="grey63")
 
 #Fin de la seccion del layout de bcp
+
+#Seccion para funciones del control de los procesos suspendidos
+
+def nuevo_suspendido():
+    global bloqueados
+    proceso_suspendido = bloqueados[0]
+    for i in range(len(memoria)):
+        if memoria[i][1] == str(bloqueados[0]["id"]):
+            memoria[i] = ["0/5","N/A","N/A"]
+    bloqueados.pop(0)
+    proceso_suspendido["estado"] = 'Suspendido'
+    proceso_suspendido["tiem_bloq"] = 0
+    a = ''
+    with open("suspendidos.txt", "a") as archivo:
+        for valor in proceso_suspendido.values():
+            a += str(valor)+" "
+        a = a[:-1]+"\n"
+        archivo.write(a)
+
+def regresa_info_suspendido():
+    global proceso_a_cambiar
+    with open('suspendidos.txt', 'r+') as archivo:
+        lines = archivo.readlines()
+        datos_proceso = lines[0]
+        archivo.seek(0)
+        archivo.truncate()
+        archivo.writelines(lines[1:])
+    datos_proceso = datos_proceso.split()
+    proceso_blanco = nuevo_proceso_sin_id()
+    i = 0
+    for key in proceso_blanco.keys():
+        proceso_blanco[key] = datos_proceso[i]
+        i += 1
+    
+    proceso_a_cambiar = proceso_blanco
+
+def suspendido_a_listo():
+    # Seccion de llenado de procesos listos
+    global listos, memoria, proceso_a_cambiar
+    
+    espacio_memoria = 0
+    for frame in memoria:
+        if frame[0] == "0/5":
+            espacio_memoria += 1
+    if espacio_memoria >= int(proceso_a_cambiar["tamanio"])/5:
+        tamanio = int(proceso_a_cambiar["tamanio"])
+        if len(listos)==0:
+            proceso_a_cambiar["estado"] = "Ejecucion"
+        else:
+            proceso_a_cambiar["estado"] = "Listo"
+
+        for frame in memoria:
+            if frame[0] == "0/5" and tamanio > 0:
+                if tamanio/5 > 1:
+                    frame[0] = "5/5"
+                    frame[1] = str(proceso_a_cambiar["id"])
+                    frame[2] = proceso_a_cambiar["estado"]
+                    tamanio -= 5
+                else:
+                    frame[0] = str(tamanio) + "/5"
+                    frame[1] = str(proceso_a_cambiar["id"])
+                    frame[2] = proceso_a_cambiar["estado"]
+                    tamanio = 0
+            if tamanio == 0:
+                break
+        proceso_a_cambiar["tiem_llegada"] = tiempo_global - 1
+        proceso_a_cambiar["tiem_espera"] = 0
+        proceso_a_cambiar["tme"] = int(proceso_a_cambiar["tme"])
+        proceso_a_cambiar["tamanio"] = int(proceso_a_cambiar["tamanio"])
+        proceso_a_cambiar["operando1"] = int(proceso_a_cambiar["operando1"])
+        proceso_a_cambiar["operando2"] = int(proceso_a_cambiar["operando2"])
+        for key in proceso_a_cambiar.keys():
+            if 'tiem' in key:
+                try:
+                    proceso_a_cambiar[key] = int(proceso_a_cambiar[key])
+                except:
+                    pass
+        listos.append(proceso_a_cambiar)
+        proceso_a_cambiar = dict()
+    else:
+        pass
+#Fin de seccion de procesos suspendidos
     
 with Live(layout, refresh_per_second=20) as live:
     procesos_finalizados = 0
@@ -570,6 +705,35 @@ with Live(layout, refresh_per_second=20) as live:
                     break
                 if nuevo == 1:
                     break
+
+                if suspendido == 1:
+                    try:
+                        nuevo_suspendido()
+                        nuevo_a_listo()
+                        layout["chest"]["der"].update(tabla_bloqueados())
+                        layout["leg"]["right"].update(tabla_memoria())
+                        layout["head"].update(Header())
+                    except:
+                        pass #No pasa nada porque no hay procesos bloqueados
+                    suspendido = 0
+                
+                if regresa == 1:
+                    try:
+                        with open("suspendidos.txt", "r") as archivo:
+                            proceso_suspendido = archivo.readline()
+                            if proceso_suspendido == "":
+                                raise Exception('No hay archivos suspendidos')
+                            else:
+                                pass
+                        regresa_info_suspendido()
+                        suspendido_a_listo()
+                        layout["leg"]["right"].update(tabla_memoria())
+                        layout["chest"]["izq"].update(tabla_listos())
+                        layout["chest"]["centro"].update(tabla_proceso_ejecucion()) 
+                        regresa = 0
+                    except:
+                        pass #Si cae aqui el archivo no existe o no hay procesos que regresar
+
                 if listos[proceso_ejecucion]["tiem_rest"] == 0:
                     break
                 sleep(1)
@@ -628,6 +792,34 @@ with Live(layout, refresh_per_second=20) as live:
                 
                 if nuevo == 1:
                     break
+
+                if suspendido == 1:
+                    try:
+                        nuevo_suspendido()
+                        nuevo_a_listo()
+                        layout["chest"]["der"].update(tabla_bloqueados())
+                        layout["leg"]["right"].update(tabla_memoria())
+                        layout["head"].update(Header())
+                    except:
+                        pass #No pasa nada porque no hay procesos bloqueados
+                    suspendido = 0
+                
+                if regresa == 1:
+                    try:
+                        with open("suspendidos.txt", "r") as archivo:
+                            proceso_suspendido = archivo.readline()
+                            if proceso_suspendido == "":
+                                raise Exception('No hay archivos suspendidos')
+                            else:
+                                pass
+                        regresa_info_suspendido()
+                        suspendido_a_listo()
+                        layout["leg"]["right"].update(tabla_memoria())
+                        layout["chest"]["izq"].update(tabla_listos())
+                        layout["chest"]["centro"].update(tabla_proceso_ejecucion()) 
+                        regresa = 0
+                    except:
+                        pass #Si cae aqui el archivo no existe o no hay procesos que regresar
 
                 sleep(1)
                 for proceso in bloqueados:
@@ -688,7 +880,11 @@ with Live(layout, refresh_per_second=20) as live:
             procesos_finalizados += 1
             
             listo_a_terminado()
-            nuevo_a_listo()
+            if proceso_a_cambiar == dict():
+                nuevo_a_listo()
+            else:
+                suspendido_a_listo()
+
             layout["head"].update(Header())
 
     layout["chest"]["centro"].update(tabla_proceso_ejecucion_fin())
@@ -752,5 +948,8 @@ for proceso in terminados:
 
 layout_final = make_layout_final()
 layout_final["head"].update(table_final)
+
+if os.path.exists('suspendidos.txt'):
+    os.remove('suspendidos.txt')
 
 print(layout_final)
